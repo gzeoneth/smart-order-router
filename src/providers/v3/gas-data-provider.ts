@@ -116,6 +116,7 @@ export class ArbitrumGasDataProvider
   }
 
   public async getGasData() {
+    // TODO: gas data is not static, we should get the blocktag for historical query
     const gasDataContract = GasDataArbitrum__factory.connect(
       this.gasFeesAddress,
       this.provider

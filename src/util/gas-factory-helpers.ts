@@ -5,6 +5,7 @@ import { Pair } from '@uniswap/v2-sdk/dist/entities';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
+import brotli from 'brotli';
 
 import { IV2PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
@@ -184,17 +185,35 @@ export function getGasCostInNativeCurrency(
   return costNativeCurrency;
 }
 
+export function getArbitrumBytes(data: string): BigNumber {
+  if (data == "") return BigNumber.from(0);
+  const compressed = brotli.compress(Buffer.from(data.replace('0x', ''), 'hex'), {
+    mode: 0,
+    quality: 1,
+    lgwin: 22,
+  });
+  // TODO: This is a rough estimate of the compressed size
+  // Brotli 0 should be used, but this brotli library doesn't support it
+  // https://github.com/foliojs/brotli.js/issues/38
+  // There are other brotli libraries that do support it, but require async
+  // We workaround by using Brotli 1 with a 20% bump in size
+  return BigNumber.from(compressed.length).mul(120).div(100)
+}
+
 export function calculateArbitrumToL1FeeFromCalldata(
   calldata: string,
   gasData: ArbitrumGasData
 ): [BigNumber, BigNumber] {
   const { perL2TxFee, perL1CalldataFee } = gasData;
-  // calculates gas amounts based on bytes of calldata, use 0 as overhead.
-  const l1GasUsed = getL2ToL1GasUsed(calldata, BigNumber.from(0));
-  // multiply by the fee per calldata and add the flat l2 fee
-  let l1Fee = l1GasUsed.mul(perL1CalldataFee);
-  l1Fee = l1Fee.add(perL2TxFee);
-  return [l1GasUsed, l1Fee];
+  // calculates bytes of compressed calldata
+  const l1ByteUsed = getArbitrumBytes(calldata);
+  const l1GasUsed = l1ByteUsed.mul(16);
+  // multiply by the fee perL1CalldataFee(gas) and add the flat l2 fee
+  const l1Fee = l1GasUsed.mul(perL1CalldataFee).add(perL2TxFee);
+  // reverse engineer the assumed tx overhead, should be 2240 (140 bytes * 16)
+  // https://github.com/OffchainLabs/nitro/blob/6ee273ebc8d1cad8ca89386507785bcf3c5e29bd/precompiles/ArbGasInfo.go#L23
+  const perL2TxL1Gas = perL2TxFee.div(perL1CalldataFee)
+  return [l1GasUsed.add(perL2TxL1Gas), l1Fee];
 }
 
 export function calculateOptimismToL1FeeFromCalldata(
