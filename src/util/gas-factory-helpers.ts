@@ -203,8 +203,8 @@ export function getArbitrumBytes(data: string): BigNumber {
 export function calculateArbitrumToL1FeeFromCalldata(
   calldata: string,
   gasData: ArbitrumGasData
-): [BigNumber, BigNumber] {
-  const { perL2TxFee, perL1CalldataFee } = gasData;
+): [BigNumber, BigNumber, BigNumber] {
+  const { perL2TxFee, perL1CalldataFee, perArbGasTotal } = gasData;
   // calculates bytes of compressed calldata
   const l1ByteUsed = getArbitrumBytes(calldata);
   const l1GasUsed = l1ByteUsed.mul(16);
@@ -213,7 +213,8 @@ export function calculateArbitrumToL1FeeFromCalldata(
   // reverse engineer the assumed tx overhead, should be 2240 (140 bytes * 16)
   // https://github.com/OffchainLabs/nitro/blob/6ee273ebc8d1cad8ca89386507785bcf3c5e29bd/precompiles/ArbGasInfo.go#L23
   const perL2TxL1Gas = perL2TxFee.div(perL1CalldataFee)
-  return [l1GasUsed.add(perL2TxL1Gas), l1Fee];
+  const gasUsedL1OnL2 = l1Fee.div(perArbGasTotal)
+  return [l1GasUsed.add(perL2TxL1Gas), l1Fee, gasUsedL1OnL2];
 }
 
 export function calculateOptimismToL1FeeFromCalldata(

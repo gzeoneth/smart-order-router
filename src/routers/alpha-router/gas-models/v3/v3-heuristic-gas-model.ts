@@ -81,6 +81,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       route: V3RouteWithValidQuote[]
     ): Promise<{
       gasUsedL1: BigNumber;
+      gasUsedL1OnL2: BigNumber;
       gasCostL1USD: CurrencyAmount;
       gasCostL1QuoteToken: CurrencyAmount;
     }> => {
@@ -91,6 +92,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         slippageTolerance: new Percent(5, 10_000),
       };
       let l1Used = BigNumber.from(0);
+      let l1UsedOnL2 = BigNumber.from(0);
       let l1FeeInWei = BigNumber.from(0);
       const opStackChains = [
         ChainId.OPTIMISM,
@@ -108,7 +110,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         chainId == ChainId.ARBITRUM_ONE ||
         chainId == ChainId.ARBITRUM_GOERLI
       ) {
-        [l1Used, l1FeeInWei] = this.calculateArbitrumToL1SecurityFee(
+        [l1Used, l1FeeInWei, l1UsedOnL2] = this.calculateArbitrumToL1SecurityFee(
           route,
           swapOptions,
           l2GasData as ArbitrumGasData
@@ -152,6 +154,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       // gasCostL1USD and gasCostL1QuoteToken is the cost of gas in each of those tokens
       return {
         gasUsedL1: l1Used,
+        gasUsedL1OnL2: l1UsedOnL2,
         gasCostL1USD,
         gasCostL1QuoteToken,
       };
@@ -418,7 +421,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     routes: V3RouteWithValidQuote[],
     swapConfig: SwapOptionsUniversalRouter,
     gasData: ArbitrumGasData
-  ): [BigNumber, BigNumber] {
+  ): [BigNumber, BigNumber, BigNumber] {
     const route: V3RouteWithValidQuote = routes[0]!;
 
     const amountToken =

@@ -84,6 +84,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
 
 export type L1ToL2GasCosts = {
   gasUsedL1: BigNumber;
+  gasUsedL1OnL2?: BigNumber;
   gasCostL1USD: CurrencyAmount;
   gasCostL1QuoteToken: CurrencyAmount;
 };
@@ -105,8 +106,8 @@ export type BuildOnChainGasModelFactoryType = {
   quoteToken: Token;
   v2poolProvider: IV2PoolProvider;
   l2GasDataProvider?:
-    | IL2GasDataProvider<OptimismGasData>
-    | IL2GasDataProvider<ArbitrumGasData>;
+  | IL2GasDataProvider<OptimismGasData>
+  | IL2GasDataProvider<ArbitrumGasData>;
   providerConfig?: GasModelProviderConfig;
 };
 
